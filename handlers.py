@@ -6,6 +6,7 @@ from aiogram import F
 from database import get_quiz_index, update_quiz_index, update_user_score, finalize_quiz, DB_NAME
 from quiz_data import quiz_data
 
+
 def generate_options_keyboard(answer_options, right_answer):
     builder = InlineKeyboardBuilder()
     for index, option in enumerate(answer_options):
@@ -15,6 +16,7 @@ def generate_options_keyboard(answer_options, right_answer):
         )
     builder.adjust(1)
     return builder.as_markup()
+
 
 async def process_answer(callback: types.CallbackQuery):
     selected_index = int(callback.data.split("_")[1])
@@ -50,29 +52,34 @@ async def process_answer(callback: types.CallbackQuery):
         await callback.message.answer("Это был последний вопрос. Квиз завершен!")
         await finalize_quiz(user_id)
 
+
 async def cmd_start(message: types.Message):
     user_id = message.from_user.id
-    await reset_user_score(user_id)  # Сброс старых результатов
+    await reset_user_score(user_id)
     builder = ReplyKeyboardBuilder()
     builder.add(types.KeyboardButton(text="Начать игру"))
     await message.answer("Добро пожаловать в квиз! Нажмите 'Начать игру', чтобы начать.",
                          reply_markup=builder.as_markup(resize_keyboard=True))
 
+
 async def cmd_quiz(message: types.Message):
     user_id = message.from_user.id
-    await reset_user_score(user_id)  # Сброс старых результатов
+    await reset_user_score(user_id)
     await message.answer("Давайте начнем квиз!")
     await new_quiz(message)
+
 
 async def cmd_stats(message: types.Message):
     async with aiosqlite.connect(DB_NAME) as db:
         async with db.execute('SELECT user_id, correct_answers FROM user_scores') as cursor:
             results = await cursor.fetchall()
             stats = '\n'.join([
-                f"Пользователь {user_id}: {correct_answers} {'правильный ответ' if correct_answers == 1 else 'правильных ответа'}"
+                f"Пользователь {user_id}: {correct_answers} "
+                f"{'правильный ответ' if correct_answers == 1 else 'правильных ответа'}"
                 for user_id, correct_answers in results
             ])
             await message.answer(f"Статистика:\n{stats}")
+
 
 async def get_question(message, user_id):
     current_question_index = await get_quiz_index(user_id)
@@ -86,15 +93,18 @@ async def get_question(message, user_id):
     kb = generate_options_keyboard(opts, opts[correct_index])
     await message.answer(f"{quiz_data[current_question_index]['question']}", reply_markup=kb)
 
+
 async def new_quiz(message):
     user_id = message.from_user.id
     await update_quiz_index(user_id, 0)
     await get_question(message, user_id)
 
+
 async def reset_user_score(user_id):
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute('UPDATE user_scores SET correct_answers = 0 WHERE user_id = ?', (user_id,))
         await db.commit()
+
 
 def register_handlers(dp: Dispatcher):
     dp.message(Command("start"))(cmd_start)

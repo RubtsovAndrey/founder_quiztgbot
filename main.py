@@ -8,6 +8,7 @@ API_TOKEN = '6897823883:AAEbeOeXFY2zYzhzgQe6C8UmiVvOx9xSWZY'
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
+
 async def main():
     await create_tables()
     register_handlers(dp)
